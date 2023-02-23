@@ -1,0 +1,57 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: develop-ms
+  labels:
+    io.kompose.service: 
+  name: smartenvironment
+spec:
+  ports:
+    - name: "8030"
+      port: 8030
+      targetPort: 8030
+  selector:
+    io.kompose.service: smartenvironment
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: develop-ms
+  labels:
+    io.kompose.service: smartenvironment
+  name: smartenvironment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: smartenvironment
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        io.kompose.service: smartenvironment
+    spec:
+      containers:
+        - command: [bash]           
+          args:
+          - -c
+          - |
+            python /code/manage.py migrate
+            python /code/manage.py data_migrate
+            gunicorn --bind 0.0.0.0:8030 SMART_ENVIRONMENT.wsgi:application
+            sleep 10m      
+          image: acrvfqhub.azurecr.io/smartenvironment:v1
+          imagePullPolicy: Always
+          name: smartenvironment
+          #resources:
+          # requests:
+          #   cpu: 1m
+          #   memory: 55Mi
+          #  limits:
+          #    cpu: 50m
+          #    memory: 100Mi
+          ports:
+            - containerPort: 8030
+      restartPolicy: Always
